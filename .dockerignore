@@ -1,0 +1,17 @@
+# 构建上下文为仓库根。Dockerfile 仅 COPY ./init.sh，其余目录/文件无需进镜像，
+# 在此排除以减小上下文、避免机密与运行时数据被发送到 daemon。
+
+# 文档与各环境编排（镜像不依赖）
+docs/
+local/
+cloud_server/
+
+# 仓库元信息
+*.md
+LICENSE
+.gitignore
+.dockerignore
+
+# 机密与系统文件
+**/.env
+**/.DS_Store

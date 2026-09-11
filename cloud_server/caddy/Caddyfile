@@ -1,0 +1,30 @@
+# Caddyfile — OpenClaw HTTPS 反向代理（自签证书）
+#
+# 用途：
+#   对访问者终止 TLS，把明文 HTTP 流量转发给 openclaw 网关，
+#   解决 HTTP 明文被抓包/篡改的问题。openclaw 侧零改动。
+#
+# 访问方式：https://<你的IP>
+#
+# 证书：使用手动生成的自签证书（caddy.crt / caddy.key），
+#   由 caddy/generate-cert.sh 按 CADDY_IP 生成，SAN 含该 IP。
+#   不用 Caddy 内置的 `tls internal`（只支持内网/本地，无法为公网 IP 签发）。
+#
+# 用 `:443`（不限定 host）而非 `https://<IP>:443`：
+#   curl/浏览器对 IP 的 SNI 行为与 openssl 不同，按 IP 限定 host 会导致
+#   握手时 SNI 不匹配 → ERR_SSL_PROTOCOL_ERROR / tlsv1 internal error。
+#   `:443` 让 Caddy 对任意 SNI 都用同一张证书，单服务场景最稳。
+#
+# 首次启动前先生成证书：
+#   sh caddy/generate-cert.sh <你的IP>
+# 客户端信任 caddy.crt 可消除浏览器警告。
+
+{
+  email off
+  auto_https disable_redirects
+}
+
+:443 {
+  tls /etc/caddy/caddy.crt /etc/caddy/caddy.key
+  reverse_proxy openclaw-gateway:{$OPENCLAW_GATEWAY_PORT:18789}
+}

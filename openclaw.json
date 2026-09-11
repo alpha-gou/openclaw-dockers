@@ -1,0 +1,339 @@
+{
+  "meta": {
+    "lastTouchedVersion": "2026.9.1",
+    "migrations": {
+      "modelPolicyAllowlist": true
+    }
+  },
+  "update": {
+    "checkOnStart": false
+  },
+  "browser": {
+    "executablePath": "/usr/bin/chromium",
+    "headless": true,
+    "noSandbox": true,
+    "defaultProfile": "openclaw"
+  },
+  "models": {
+    "mode": "replace",
+    "providers": {
+      "default": {
+        "baseUrl": "http://1215566411147141.cn-wulanchabu.pai-eas.aliyuncs.com/api/predict/lovong_deepseek/v1",
+        "apiKey": "ZTY0MGE2Mzk5MGM5YzMxMTIwZDEyYWM1NGM0YjgzNjFiMjEwYzljNQ==",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "DeepSeek-V4-Flash-0731",
+            "name": "DeepSeek-V4-Flash-0731",
+            "reasoning": true,
+            "input": [
+              "text"
+            ],
+            "contextWindow": 1048576,
+            "maxTokens": 307200,
+            "cost": {
+              "input": 1,
+              "output": 2
+            },
+            "compat": {
+              "supportsUsageInStreaming": true
+            }
+          }
+        ]
+      },
+      "pai": {
+        "baseUrl": "http://1215566411147141.cn-wulanchabu.pai-eas.aliyuncs.com/api/predict/deepseek_v4_flash_int8/v1",
+        "apiKey": "YjU2ZDljZTRmZmQ5NGUwMzhlNzljOWU0Njc3MTZiMTdmMWNiYzNmYw==",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "Deepseek-v4-flash",
+            "name": "Deepseek-v4-flash",
+            "reasoning": true,
+            "input": [
+              "text"
+            ],
+            "contextWindow": 1048576,
+            "maxTokens": 307200,
+            "cost": {
+              "input": 1,
+              "output": 2
+            },
+            "compat": {
+              "supportsUsageInStreaming": true
+            }
+          }
+        ]
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "default/DeepSeek-V4-Flash-0731"
+      },
+      "models": {
+        "pai/Deepseek-v4-flash": {
+          "alias": "Deepseek-v4-flash",
+          "params": {
+            "extra_body": {
+              "chat_template_kwargs": {
+                "thinking": true,
+                "separate_reasoning": true
+              }
+            }
+          }
+        },
+        "default/DeepSeek-V4-Flash-0731": {
+          "alias": "DeepSeek-V4-Flash-0731",
+          "params": {
+            "extra_body": {
+              "chat_template_kwargs": {
+                "thinking": true,
+                "separate_reasoning": true
+              }
+            }
+          }
+        }
+      },
+      "imageModel": {
+        "primary": "default/DeepSeek-V4-Flash-0731"
+      },
+      "workspace": "/home/node/.openclaw/workspace",
+      "compaction": {
+        "mode": "safeguard"
+      },
+      "elevatedDefault": "full",
+      "maxConcurrent": 4,
+      "subagents": {
+        "maxConcurrent": 8
+      },
+      "sandbox": {
+        "mode": "off"
+      },
+      "contextPruning": {
+        "mode": "cache-ttl",
+        "ttl": "5m"
+      },
+      "timeoutSeconds": 600,
+      "modelPolicy": {
+        "allow": [
+          "pai/Deepseek-v4-flash",
+          "default/DeepSeek-V4-Flash-0731"
+        ]
+      }
+    },
+    "ownership": "explicit",
+    "entries": {
+      "main": {
+        "workspace": "/home/node/.openclaw/workspace"
+      },
+      "nn-studio": {
+        "name": "nn-studio",
+        "workspace": "/home/node/.openclaw/workspace-nn-studio",
+        "agentDir": "/home/node/.openclaw/agents/nn-studio/agent",
+        "thinkingDefault": "adaptive"
+      }
+    }
+  },
+  "tools": {
+    "profile": "full",
+    "sessions": {
+      "visibility": "all"
+    },
+    "fs": {
+      "workspaceOnly": true
+    },
+    "alsoAllow": [
+      "studio_pipeline"
+    ]
+  },
+  "bindings": [
+    {
+      "agentId": "nn-studio",
+      "match": {
+        "channel": "qqbot",
+        "accountId": "nn-studio-bot"
+      }
+    }
+  ],
+  "messages": {
+    "ackReactionScope": "group-mentions"
+  },
+  "channels": {},
+  "memory": {
+    "citations": "auto",
+    "search": {
+      "provider": "openai-compatible",
+      "model": "Qwen3-Embedding-8B",
+      "remote": {
+        "baseUrl": "http://1215566411147141.cn-wulanchabu.pai-eas.aliyuncs.com/api/predict/qwen3_embeding_8b_fg1/v1",
+        "apiKey": "MGQ4NWY1ODc3ZTkyZjc1NTc1N2ZjMTUyY2VkYjBkZDFjMmZhNmVkMw=="
+      },
+      "fallback": "none"
+    }
+  },
+  "gateway": {
+    "port": 18888,
+    "bind": "lan",
+    "mode": "local",
+    "trustedProxies": [
+      "172.16.0.0/12"
+    ],
+    "controlUi": {
+      "allowedOrigins": [
+        "http://localhost:18888",
+        "http://127.0.0.1:18888",
+        "https://123.57.245.84"
+      ]
+    },
+    "auth": {
+      "mode": "token",
+      "token": "yh3000"
+    }
+  },
+  "plugins": {
+    "entries": {
+      "qqbot": {
+        "enabled": true
+      },
+      "browser": {
+        "enabled": false
+      },
+      "deepseek": {
+        "enabled": true
+      },
+      "feishu": {
+        "enabled": true
+      }
+    },
+    "enabled": true,
+    "allow": [
+      "qqbot",
+      "memory-core",
+      "deepseek",
+      "feishu"
+    ],
+    "load": {
+      "paths": [
+        "/home/node/.openclaw/workspace-nn-studio/plugins/pipeline-tool"
+      ]
+    }
+  },
+  "session": {
+    "maintenance": {
+      "pruneAfter": "3d"
+    }
+  },
+  "wizard": {
+    "lastRunAt": "2026-09-04T10:05:30.497Z",
+    "lastRunVersion": "2026.9.1",
+    "lastRunCommand": "doctor",
+    "lastRunMode": "local"
+  },
+  "skills": {
+    "entries": {
+      "1password": {
+        "enabled": false
+      },
+      "blogwatcher": {
+        "enabled": false
+      },
+      "blucli": {
+        "enabled": false
+      },
+      "camsnap": {
+        "enabled": false
+      },
+      "coding-agent": {
+        "enabled": false
+      },
+      "eightctl": {
+        "enabled": false
+      },
+      "gemini": {
+        "enabled": false
+      },
+      "gh-issues": {
+        "enabled": false
+      },
+      "gifgrep": {
+        "enabled": false
+      },
+      "github": {
+        "enabled": false
+      },
+      "gog": {
+        "enabled": false
+      },
+      "goplaces": {
+        "enabled": false
+      },
+      "himalaya": {
+        "enabled": false
+      },
+      "inkos": {
+        "enabled": false
+      },
+      "mcporter": {
+        "enabled": false
+      },
+      "model-usage": {
+        "enabled": false
+      },
+      "nano-pdf": {
+        "enabled": false
+      },
+      "obsidian": {
+        "enabled": false
+      },
+      "openai-whisper": {
+        "enabled": false
+      },
+      "openai-whisper-api": {
+        "enabled": false
+      },
+      "openhue": {
+        "enabled": false
+      },
+      "oracle": {
+        "enabled": false
+      },
+      "ordercli": {
+        "enabled": false
+      },
+      "sag": {
+        "enabled": false
+      },
+      "sherpa-onnx-tts": {
+        "enabled": false
+      },
+      "songsee": {
+        "enabled": false
+      },
+      "sonoscli": {
+        "enabled": false
+      },
+      "spotify-player": {
+        "enabled": false
+      },
+      "summarize": {
+        "enabled": false
+      },
+      "tmux": {
+        "enabled": false
+      },
+      "trello": {
+        "enabled": false
+      },
+      "xurl": {
+        "enabled": false
+      }
+    }
+  },
+  "ui": {
+    "prefs": {
+      "chatShowThinking": false
+    }
+  }
+}
