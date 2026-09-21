@@ -113,34 +113,7 @@ http://localhost:18789
 
 ## 升级与运行 openclaw doctor
 
-当 openclaw 升级（尤其是大版本重构）后，可能需要运行 `openclaw doctor` 修复配置/插件。本项目提供 `openclaw-installer` 工具容器（`tools` profile，见 [docker-compose.yml](docker-compose.yml)）来执行。你有两种选择：
-
-### 方法一：`run` 命令显式清空 entrypoint
-
-```bash
-docker compose --profile tools run --rm --entrypoint "" openclaw-installer \
-  openclaw doctor --fix --non-interactive
-```
-
-`--entrypoint ""` 会将 entrypoint 置空，此时 `openclaw doctor --fix --non-interactive` 才会被当作容器启动命令正确执行。
-
-### 方法二：先启动 installer，再用 `exec` 进入执行（更直观）
-
-```bash
-# 1. 启动 installer 容器（后台运行，entrypoint 仍是 tail -f，不会退出）
-docker compose --profile tools up -d openclaw-installer
-
-# 2. 进入容器执行 doctor 命令
-docker compose exec openclaw-installer openclaw doctor --fix --non-interactive
-
-# 3. 修完后停掉 installer（可选）
-docker compose --profile tools stop openclaw-installer
-
-# 4. 启动 gateway
-docker compose up -d openclaw-gateway
-```
-
-`exec` 不会经过 entrypoint，直接在已有容器内执行命令，不会有参数解析问题。
+升级后需通过 `openclaw-installer` 工具容器（`tools` profile，见 [docker-compose.yml](docker-compose.yml)）运行 `openclaw doctor --fix --non-interactive` 完成状态/配置迁移。完整操作流程（停 gateway → 备份 → 修复 → 重启验证）、命令速查表与实战修复案例，统一见 [README · openclaw doctor 操作指南](../README.md#openclaw-doctor-操作指南)。
 
 ## 与 cloud_server 的关系
 

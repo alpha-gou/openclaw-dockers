@@ -239,25 +239,7 @@ docker compose up -d --force-recreate
 
 ## 升级后运行 openclaw doctor
 
-当 openclaw 升级（尤其是大版本重构）后，可能需要运行 `openclaw doctor` 修复配置/插件。两环境均提供 `openclaw-installer` 工具容器（`tools` profile）。
-
-### 方法一：`run` 显式清空 entrypoint
-
-```bash
-docker compose --profile tools run --rm --entrypoint "" openclaw-installer \
-  openclaw doctor --fix --non-interactive
-```
-
-### 方法二：先启动 installer，再用 `exec` 进入执行
-
-```bash
-docker compose --profile tools up -d openclaw-installer
-docker compose exec openclaw-installer openclaw doctor --fix --non-interactive
-docker compose --profile tools stop openclaw-installer
-docker compose up -d openclaw-gateway
-```
-
-`exec` 不经过 entrypoint，直接在已有容器内执行命令，不会有参数解析问题。
+openclaw 升级（尤其大版本重构）后，需运行 `openclaw doctor --fix --non-interactive` 完成状态/配置迁移。完整操作流程（停 gateway → 备份 → 修复 → 重启验证）、命令速查表、注意事项与实战修复案例，统一见 [README · openclaw doctor 操作指南](../README.md#openclaw-doctor-操作指南)。
 
 ---
 

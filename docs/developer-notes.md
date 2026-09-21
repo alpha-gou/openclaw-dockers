@@ -42,17 +42,16 @@ docker build -t alpha-gou/openclaw-dockers:latest .
 
 ## 镜像中安装的主要组件
 
-当前镜像内主要包含以下几类组件：
+当前镜像内主要包含以下几类组件（2026-09 精简后）：
 
-- 全局 Node.js 工具：`openclaw`、`opencode-ai`、`playwright`、`playwright-extra`、`puppeteer-extra-plugin-stealth`、`@steipete/bird`、`@tobilu/qmd`
-- 浏览器与系统依赖：`chromium`、`ffmpeg`、`websockify`、`jq`、`gosu`、`python3` 等
-- Linuxbrew 环境：`brew`
+- 全局 Node.js 工具：`openclaw`、`clawhub`
+- 浏览器与系统依赖：`chromium`（`openclaw.json` 中 `browser.executablePath` 指向）、`ffmpeg`（agent-reach 的 yt-dlp 需要）、`jq`、`gosu`、`python3` 等
+- Linuxbrew 环境：默认注释未安装（见 Dockerfile 内说明）
 - 预装 / 预拉取的 IM 相关扩展与插件：
-  - `openclaw-channel-dingtalk`
-  - `openclaw-napcat`
-  - `qqbot`
-  - `@sunnoy/wecom`
+  - `qqbot`（默认安装并固化为 seed）
+  - `napcat` / `dingtalk` / `wecom`：默认注释，按需启用
 - 飞书相关能力以镜像内预置配置和后续安装步骤为主，并不是直接全局安装 `@openclaw/feishu`
+- 已移除的历史组件：`opencode-ai`、`playwright`、`playwright-extra`、`puppeteer-extra-plugin-stealth`、`@steipete/bird`（上游已弃用）、`@tobilu/qmd`、`bun`、`uv`、`websockify`、`socat`、`tini`、`build-essential`、`docker.io`（均无实际引用，详见 Dockerfile 注释）
 
 更准确的安装来源、安装方式与版本，以 [`Dockerfile`](../Dockerfile) 为准。
 

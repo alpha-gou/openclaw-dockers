@@ -1,5 +1,7 @@
-# OpenClaw Docker 镜像
-FROM docker.m.daocloud.io/node:22-slim
+# OpenClaw Docker 镜像（精简版）
+# 基础镜像：openclaw >= 2026.9 要求 Node >=24.16 <25 || >=26.1（Node 22 已不被官方支持），
+# 与官方 Dockerfile 的 node:24-bookworm-slim 运行时基准保持一致。
+FROM docker.m.daocloud.io/node:24-bookworm-slim
 
 # 从 国内镜像源 拷贝 Python 3.12 (确保使用与 node 镜像一致的 Debian Bookworm 版本)
 COPY --from=docker.m.daocloud.io/python:3.12-slim-bookworm /usr/local /usr/local
@@ -8,13 +10,12 @@ COPY --from=docker.m.daocloud.io/python:3.12-slim-bookworm /usr/local /usr/local
 WORKDIR /app
 
 # 设置环境变量
-ENV BUN_INSTALL="/usr/local" \
-    PATH="/usr/local/bin:$PATH" \
+ENV PATH="/usr/local/bin:$PATH" \
     DEBIAN_FRONTEND=noninteractive
 
 # Openclaw版本
 # 默认使用最新版，指定版本命令：
-#     docker build --build-arg OPENCLAW_VERSION=2026.6.1 -t myclawimage .
+#     docker build --build-arg OPENCLAW_VERSION=2026.9.5 -t myclawimage .
 ARG OPENCLAW_VERSION=latest
 
 # 1. 系统依赖与环境安装
@@ -24,7 +25,12 @@ RUN rm -f /etc/apt/sources.list.d/* && \
     echo "deb http://mirrors.ustc.edu.cn/debian-security/ bookworm-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list && \
     apt-get update
 
-## 1.2：安装基础工具
+## 1.2：安装基础工具（已精简）
+# 已移除且仓库内零引用：
+#   - socat / tini：init.sh 与 compose 均未使用（compose 用 `init: true`，自带 init）
+#   - build-essential：qqbot 等插件为纯 JS，无需编译；官方运行时镜像也不含构建工具
+#   - docker.io：openclaw.json 中 sandbox.mode=off；如日后启用 docker 沙箱，
+#     需重新加回 docker.io（或官方推荐的 docker-ce-cli）并在 compose 中挂载 /var/run/docker.sock
 RUN apt-get install -y --no-install-recommends \
     bash \
     ca-certificates \
@@ -35,11 +41,7 @@ RUN apt-get install -y --no-install-recommends \
     procps \
     unzip \
     jq \
-    socat \
-    tini \
     gosu \
-    build-essential \
-    docker.io \
     ffmpeg \
     fonts-liberation \
     fonts-noto-cjk \
@@ -53,45 +55,29 @@ RUN sed -i 's/^# *en_US.UTF-8 UTF-8$/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
     git config --system url."https://github.com/".insteadOf ssh://git@github.com/ && \
     npm config set registry https://registry.npmmirror.com
 
-## 1.4：Node.js 工具安装（单独一层，便于缓存）
-RUN npm install -g openclaw@${OPENCLAW_VERSION} opencode-ai@latest clawhub playwright playwright-extra puppeteer-extra-plugin-stealth @steipete/bird
+## 1.4：Node.js 工具安装（已精简）
+# 保留：openclaw（主体）、clawhub（官方扩展市场 CLI）
+# 已移除：
+#   - @steipete/bird：npm 已标记 deprecated（上游停止维护），Twitter 能力由 agent-reach 承担
+#   - opencode-ai：openclaw.json 的 modelPolicy 只放行 deepseek 模型，coding-agent skill 已禁用
+#   - playwright / playwright-extra / puppeteer-extra-plugin-stealth：
+#     openclaw 自带 playwright-core（1.63.0），浏览器走 openclaw.json 的
+#     browser.executablePath=/usr/bin/chromium（apt 版，双架构原生）；
+#     playwright-extra 与 stealth 插件 2023 年后停更且无任何配置引用
+RUN npm install -g openclaw@${OPENCLAW_VERSION} clawhub
 
-## 1.5：安装运行时工具
-# bun 的 npm 包靠可选依赖 @oven/bun-linux-<arch> 下平台二进制；npmmirror 对最新版
-# 平台包常有同步延迟(当前缺 1.4.2 的 x64/aarch64)，会导致 install.js 失败。
-# 先走 npmmirror(国内快)，失败再回退官方 npm 源(总有最新平台包)。两架构通用。
-RUN (npm install -g bun || npm install -g bun --registry=https://registry.npmjs.org) && \
-    ln -sf /usr/local/bin/python3 /usr/local/bin/python && \
-    /usr/local/bin/python3 -m pip install --break-system-packages --index-url https://mirrors.aliyun.com/pypi/simple/ uv && \
-    /usr/local/bin/python3 -m pip install --no-cache-dir --index-url https://mirrors.aliyun.com/pypi/simple/ websockify && \
-    npm install -g @tobilu/qmd@1.1.6
+## 1.5：Python 命令别名
+# 已移除：bun（官方运行时镜像不含 Bun，仓库内无使用）、uv（init.sh 装 agent-reach 用 pip+venv）、
+#         websockify（无 noVNC 引用，18888 是 gateway 端口）、@tobilu/qmd（无引用；
+#         如日后 memory.search 切 qmd 后端，可加回并直接用最新版 @2.x）
+RUN ln -sf /usr/local/bin/python3 /usr/local/bin/python
 
-## 1.6：国内镜像安装 Playwright Chromium
-# 按架构区分：x86_64 下 npmmirror 提供 chrome-for-testing linux64；arm64 下 npmmirror
-# 无对应 arm64 构建，跳过缓存下载，运行时改用 apt 安装的 /usr/bin/chromium(arm64 原生，
-# 也是 openclaw.json 里 browser.executablePath 指向的路径)。
-RUN if [ "$(uname -m)" = "x86_64" ]; then \
-      CHROMIUM_REV=1223 && \
-      CFT_VER=148.0.7778.96 && \
-      TARGET_DIR=/root/.cache/ms-playwright/chromium-${CHROMIUM_REV} && \
-      mkdir -p ${TARGET_DIR}/chrome-linux64 && \
-      cd /tmp && \
-      curl -fL \
-        "https://cdn.npmmirror.com/binaries/chrome-for-testing/${CFT_VER}/linux64/chrome-linux64.zip" \
-        -o chrome.zip && \
-      unzip -q chrome.zip && \
-      cp -r chrome-linux64/* ${TARGET_DIR}/chrome-linux64/ && \
-      date > ${TARGET_DIR}/INSTALLATION_COMPLETE && \
-      rm -rf /tmp/chrome.zip /tmp/chrome-linux64; \
-    else \
-      echo "非 x86_64 架构 ($(uname -m))：跳过 playwright chromium 缓存下载，运行时使用 /usr/bin/chromium"; \
-    fi
-
-## 1.7：验证（可选，build 阶段就能提前暴露问题）
-RUN npx playwright install-deps chromium || true
-
-## 1.8：清理
-RUN apt-get purge -y --auto-remove && \
+## 1.6：清理
+# （原 1.6 Playwright Chromium 预缓存层已删除：钉死的 chromium-1223 与 openclaw 内嵌
+#   playwright-core 1.63.0 要求的 rev 1243 不匹配，且缓存在 /root/.cache 下、
+#   gateway 以 node 用户运行根本读不到，属无效死重；原 1.7 install-deps 一并移除，
+#   apt 安装的 chromium 自带全部系统依赖）
+RUN apt-get autoremove -y --purge && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /root/.npm /root/.cache
 
